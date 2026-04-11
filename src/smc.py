@@ -189,7 +189,7 @@ def detect_order_blocks(df: pd.DataFrame, lookback: int = 50, impulse_mult: floa
     if n < 20:
         return out
     tr = (df["high"] - df["low"]).rolling(14).mean()
-    atr = tr.fillna(method="bfill").values
+    atr = tr.bfill().values
     o = df["open"].values
     c = df["close"].values
     h = df["high"].values
