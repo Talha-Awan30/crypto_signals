@@ -43,7 +43,7 @@ jobs:
           CRYPTOPANIC_TOKEN: ${{ secrets.CRYPTOPANIC_TOKEN }}
           CORE_SYMBOLS: ${{ secrets.CORE_SYMBOLS }}
           BROADER_TOP_N: ${{ secrets.BROADER_TOP_N || '20' }}
-          EXCHANGE_ID: ${{ secrets.EXCHANGE_ID || 'bybit' }}
+          EXCHANGE_ID: ${{ secrets.EXCHANGE_ID || 'kucoinfutures' }}
         run: python -m src.main --once
 
       - name: Commit updated state

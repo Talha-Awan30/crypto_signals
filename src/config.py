@@ -41,7 +41,7 @@ class Config:
         )
     )
     broader_top_n: int = int(os.getenv("BROADER_TOP_N", "20"))
-    exchange_id: str = os.getenv("EXCHANGE_ID", "bybit")
+    exchange_id: str = os.getenv("EXCHANGE_ID", "kucoinfutures")
 
     # Run mode
     run_mode: str = os.getenv("RUN_MODE", "once").lower()
