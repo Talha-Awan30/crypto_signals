@@ -90,5 +90,6 @@
   "BEAT/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.3011": "2026-04-12T14:25:20.461672+00:00",
   "DOGE/USDT:USDT|1h|short|MSS + OB + Liquidity pool (EQH/EQL)|0.0909": "2026-04-12T15:05:45.459034+00:00",
   "SUI/USDT:USDT|1h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|0.8762": "2026-04-12T15:05:47.131810+00:00",
-  "SUI/USDT:USDT|4h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.9363": "2026-04-12T15:05:48.522352+00:00"
+  "SUI/USDT:USDT|4h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.9363": "2026-04-12T15:05:48.522352+00:00",
+  "ENJ/USDT:USDT|4h|long|MSS + FVG + Liquidity pool (EQH/EQL)|0.0206": "2026-04-12T15:52:44.640168+00:00"
 }
