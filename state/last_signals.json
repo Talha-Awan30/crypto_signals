@@ -64,12 +64,12 @@
   "ADA/USDT:USDT|1h|long|MSS + FVG + OB + Liquidity pool (EQH/EQL) + Volume expansion x2.4|0.2458": "2026-04-12T03:46:55.302373+00:00",
   "SOON/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL)|0.1168": "2026-04-12T03:46:56.157859+00:00",
   "TON/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x2.49|1.2385": "2026-04-12T03:46:56.943547+00:00",
-  "SOL/USDT:USDT|4h|short|MSS + FVG + Liquidity pool (EQH/EQL)|88.234": "2026-04-12T05:53:53.664247+00:00",
-  "TAO/USDT:USDT|1h|long|BOS + FVG + OB + Liquidity pool (EQH/EQL)|310.0": "2026-04-12T05:53:54.545926+00:00",
+  "SOL/USDT:USDT|4h|short|MSS + FVG + Liquidity pool (EQH/EQL)|88.234": "2026-04-12T12:04:32.637380+00:00",
+  "TAO/USDT:USDT|1h|long|BOS + FVG + OB + Liquidity pool (EQH/EQL)|310.0": "2026-04-12T12:04:34.611085+00:00",
   "TRADOOR/USDT:USDT|1h|short|BOS + OB + Liquidity pool (EQH/EQL)|3.145": "2026-04-12T05:53:55.301560+00:00",
-  "TRADOOR/USDT:USDT|4h|long|MSS + FVG + OB + Liquidity pool (EQH/EQL)|2.066": "2026-04-12T05:53:56.283393+00:00",
+  "TRADOOR/USDT:USDT|4h|long|MSS + FVG + OB + Liquidity pool (EQH/EQL)|2.066": "2026-04-12T12:04:33.626738+00:00",
   "ADA/USDT:USDT|1h|long|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.2458": "2026-04-12T05:53:57.067388+00:00",
-  "ADA/USDT:USDT|4h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.2598": "2026-04-12T05:53:58.054543+00:00",
+  "ADA/USDT:USDT|4h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.2598": "2026-04-12T12:04:35.636935+00:00",
   "ICNT/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL)|0.2906": "2026-04-12T07:13:43.743881+00:00",
   "BEAT/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.3189": "2026-04-12T07:13:46.538133+00:00",
   "XRP/USDT:USDT|4h|short|MSS + FVG + Liquidity pool (EQH/EQL)|1.3662": "2026-04-12T08:09:55.970091+00:00",
@@ -82,5 +82,7 @@
   "TRADOOR/USDT:USDT|1h|long|MSS + OB + Liquidity pool (EQH/EQL)|3.162": "2026-04-12T11:41:31.413645+00:00",
   "HYPE/USDT:USDT|1h|long|MSS + FVG + OB + Liquidity pool (EQH/EQL)|36.939": "2026-04-12T11:41:32.723248+00:00",
   "RIVER/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|11.282": "2026-04-12T11:41:33.994066+00:00",
-  "FF/USDT:USDT|1h|long|BOS + FVG + Liquidity pool (EQH/EQL)|0.0714": "2026-04-12T11:41:35.305017+00:00"
+  "FF/USDT:USDT|1h|long|BOS + FVG + Liquidity pool (EQH/EQL)|0.0714": "2026-04-12T11:41:35.305017+00:00",
+  "RAVE/USDT:USDT|4h|long|BOS + OB + Liquidity pool (EQH/EQL)|0.2421": "2026-04-12T12:04:31.546795+00:00",
+  "ICNT/USDT:USDT|1h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|0.2883": "2026-04-12T12:04:36.580905+00:00"
 }
