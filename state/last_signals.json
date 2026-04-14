@@ -208,7 +208,7 @@
   "DOT/USDT:USDT|1h|long|MSS + FVG + OB + Liquidity pool (EQH/EQL) + Volume expansion x3.26|1.24": "2026-04-13T23:59:51.370446+00:00",
   "RAVE/USDT:USDT|1h|long|BOS + FVG + OB + Liquidity pool (EQH/EQL) + Volume expansion x3.45|0.6576": "2026-04-14T03:34:46.321130+00:00",
   "XRP/USDT:USDT|1h|long|MSS + Liquidity pool (EQH/EQL)|1.336": "2026-04-14T03:34:47.497196+00:00",
-  "RIVER/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|10.655": "2026-04-14T03:34:50.109368+00:00",
+  "RIVER/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|10.655": "2026-04-14T16:07:08.971466+00:00",
   "RIVER/USDT:USDT|4h|short|BOS + FVG + Liquidity pool (EQH/EQL)|19.385": "2026-04-14T03:34:51.285304+00:00",
   "HYPE/USDT:USDT|1h|long|BOS + Liquidity pool (EQH/EQL)|39.2324": "2026-04-14T03:34:53.856889+00:00",
   "HYPE/USDT:USDT|4h|long|MSS + FVG + Liquidity pool (EQH/EQL)|38.689": "2026-04-14T03:34:55.200175+00:00",
@@ -241,5 +241,10 @@
   "ENJ/USDT:USDT|1h|short|BOS + FVG + Liquidity pool (EQH/EQL)|0.0291": "2026-04-14T12:49:13.114550+00:00",
   "XRP/USDT:USDT|1h|short|BOS + Liquidity pool (EQH/EQL)|1.3377": "2026-04-14T14:50:50.062076+00:00",
   "ADA/USDT:USDT|1h|short|BOS + Liquidity pool (EQH/EQL)|0.2508": "2026-04-14T14:50:50.799231+00:00",
-  "RIVER/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL) + Volume expansion x7.08|10.655": "2026-04-14T14:50:51.620044+00:00"
+  "RIVER/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL) + Volume expansion x7.08|10.655": "2026-04-14T14:50:51.620044+00:00",
+  "RAVE/USDT:USDT|1h|long|MSS + FVG + OB + Liquidity pool (EQH/EQL)|0.6576": "2026-04-14T16:07:05.386905+00:00",
+  "SOL/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x2.05|83.111": "2026-04-14T16:07:06.381295+00:00",
+  "HYPE/USDT:USDT|1h|long|BOS + FVG + Liquidity pool (EQH/EQL)|40.483": "2026-04-14T16:07:07.517194+00:00",
+  "COAI/USDT:USDT|4h|long|BOS + Liquidity pool (EQH/EQL)|0.2667": "2026-04-14T16:07:10.246810+00:00",
+  "WET/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.1002": "2026-04-14T16:07:11.525179+00:00"
 }
