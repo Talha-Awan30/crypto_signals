@@ -238,5 +238,8 @@
   "ENJ/USDT:USDT|1h|short|BOS + Liquidity pool (EQH/EQL)|0.0291": "2026-04-14T11:43:59.412087+00:00",
   "HYPE/USDT:USDT|4h|long|BOS + FVG + Liquidity pool (EQH/EQL)|38.689": "2026-04-14T12:49:10.288256+00:00",
   "TRADOOR/USDT:USDT|4h|short|MSS + OB + Liquidity pool (EQH/EQL)|2.139": "2026-04-14T12:49:11.675203+00:00",
-  "ENJ/USDT:USDT|1h|short|BOS + FVG + Liquidity pool (EQH/EQL)|0.0291": "2026-04-14T12:49:13.114550+00:00"
+  "ENJ/USDT:USDT|1h|short|BOS + FVG + Liquidity pool (EQH/EQL)|0.0291": "2026-04-14T12:49:13.114550+00:00",
+  "XRP/USDT:USDT|1h|short|BOS + Liquidity pool (EQH/EQL)|1.3377": "2026-04-14T14:50:50.062076+00:00",
+  "ADA/USDT:USDT|1h|short|BOS + Liquidity pool (EQH/EQL)|0.2508": "2026-04-14T14:50:50.799231+00:00",
+  "RIVER/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL) + Volume expansion x7.08|10.655": "2026-04-14T14:50:51.620044+00:00"
 }
