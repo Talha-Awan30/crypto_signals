@@ -265,5 +265,6 @@
   "MYX/USDT:USDT|1h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|0.2394": "2026-04-14T21:07:55.034770+00:00",
   "ADA/USDT:USDT|1h|long|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.2508": "2026-04-14T21:07:56.227870+00:00",
   "USELESS/USDT:USDT|1h|long|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.036": "2026-04-14T21:07:57.314049+00:00",
-  "ARIA/USDT:USDT|1h|long|MSS + FVG + OB + Liquidity pool (EQH/EQL)|0.6526": "2026-04-14T21:07:58.481589+00:00"
+  "ARIA/USDT:USDT|1h|long|MSS + FVG + OB + Liquidity pool (EQH/EQL)|0.6526": "2026-04-14T21:07:58.481589+00:00",
+  "GIGGLE/USDT:USDT|1h|long|BOS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x1.92|26.05": "2026-04-14T22:06:11.974636+00:00"
 }
