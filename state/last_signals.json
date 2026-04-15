@@ -338,5 +338,8 @@
   "PEPE/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL)|0.0": "2026-04-15T20:47:19.678459+00:00",
   "DOGE/USDT:USDT|1h|long|MSS + Liquidity pool (EQH/EQL) + Volume expansion x2.1|0.0929": "2026-04-15T20:47:21.040412+00:00",
   "BLESS/USDT:USDT|4h|long|BOS + Liquidity pool (EQH/EQL)|0.0051": "2026-04-15T20:47:22.316355+00:00",
-  "COAI/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x2.02|0.2884": "2026-04-15T20:47:23.646420+00:00"
+  "COAI/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x2.02|0.2884": "2026-04-15T20:47:23.646420+00:00",
+  "ETH/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL)|2243.92": "2026-04-15T21:52:14.738751+00:00",
+  "XRP/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL)|1.3463": "2026-04-15T21:52:15.800910+00:00",
+  "COAI/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x2.01|0.2884": "2026-04-15T21:52:16.812446+00:00"
 }
