@@ -379,5 +379,6 @@
   "BIO/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x5.77|0.0176": "2026-04-16T08:03:09.640050+00:00",
   "TRUST/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.0664": "2026-04-16T08:03:10.638114+00:00",
   "BIO/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x3.39|0.0177": "2026-04-16T09:49:24.095295+00:00",
-  "USELESS/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.0414": "2026-04-16T09:49:27.344741+00:00"
+  "USELESS/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.0414": "2026-04-16T09:49:27.344741+00:00",
+  "BIO/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL)|0.0176": "2026-04-16T11:02:15.697711+00:00"
 }
