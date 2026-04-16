@@ -373,8 +373,8 @@
   "TRUST/USDT:USDT|1h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|0.0664": "2026-04-16T06:01:32.456829+00:00",
   "H/USDT:USDT|4h|long|MSS + FVG + Liquidity pool (EQH/EQL)|0.0831": "2026-04-16T06:01:33.318515+00:00",
   "SOL/USDT:USDT|1h|short|BOS + FVG + Liquidity pool (EQH/EQL)|82.983": "2026-04-16T08:03:05.035642+00:00",
-  "HYPE/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|42.238": "2026-04-16T08:03:06.135362+00:00",
-  "HYPE/USDT:USDT|4h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|37.755": "2026-04-16T08:03:07.279606+00:00",
+  "HYPE/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|42.238": "2026-04-16T14:13:32.107433+00:00",
+  "HYPE/USDT:USDT|4h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|37.755": "2026-04-16T14:13:37.617403+00:00",
   "ZEC/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|368.87": "2026-04-16T08:03:08.415109+00:00",
   "BIO/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x5.77|0.0176": "2026-04-16T08:03:09.640050+00:00",
   "TRUST/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.0664": "2026-04-16T08:03:10.638114+00:00",
@@ -383,5 +383,9 @@
   "BIO/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL)|0.0176": "2026-04-16T11:02:15.697711+00:00",
   "RIVER/USDT:USDT|1h|short|BOS + FVG + Liquidity pool (EQH/EQL)|8.919": "2026-04-16T12:09:34.227886+00:00",
   "ORDI/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x3.97|2.3081": "2026-04-16T12:09:37.003828+00:00",
-  "MOODENG/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.0486": "2026-04-16T12:09:37.887604+00:00"
+  "MOODENG/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.0486": "2026-04-16T12:09:37.887604+00:00",
+  "ETH/USDT:USDT|1h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|2277.34": "2026-04-16T14:13:29.812133+00:00",
+  "ORDI/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x4.43|2.2922": "2026-04-16T14:13:30.937404+00:00",
+  "RIVER/USDT:USDT|1h|short|BOS + Liquidity pool (EQH/EQL)|8.8413": "2026-04-16T14:13:38.845387+00:00",
+  "MOODENG/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.0476": "2026-04-16T14:13:39.886676+00:00"
 }
