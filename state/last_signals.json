@@ -359,7 +359,7 @@
   "ADA/USDT:USDT|1h|long|MSS + OB + Liquidity pool (EQH/EQL)|0.2484": "2026-04-16T00:09:50.639960+00:00",
   "FF/USDT:USDT|1h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|0.0737": "2026-04-16T00:09:51.381363+00:00",
   "ETH/USDT:USDT|1h|long|BOS + FVG + Liquidity pool (EQH/EQL)|2243.92": "2026-04-16T03:47:05.917670+00:00",
-  "FF/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.0737": "2026-04-16T03:47:07.285739+00:00",
+  "FF/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.0737": "2026-04-16T09:49:25.309207+00:00",
   "SIREN/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.8082": "2026-04-16T03:47:08.581707+00:00",
   "BTC/USDT:USDT|1h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|72854.5": "2026-04-16T06:01:23.517346+00:00",
   "SOL/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|82.983": "2026-04-16T06:01:25.432950+00:00",
@@ -377,5 +377,7 @@
   "HYPE/USDT:USDT|4h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|37.755": "2026-04-16T08:03:07.279606+00:00",
   "ZEC/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|368.87": "2026-04-16T08:03:08.415109+00:00",
   "BIO/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x5.77|0.0176": "2026-04-16T08:03:09.640050+00:00",
-  "TRUST/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.0664": "2026-04-16T08:03:10.638114+00:00"
+  "TRUST/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.0664": "2026-04-16T08:03:10.638114+00:00",
+  "BIO/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x3.39|0.0177": "2026-04-16T09:49:24.095295+00:00",
+  "USELESS/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.0414": "2026-04-16T09:49:27.344741+00:00"
 }
