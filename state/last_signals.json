@@ -367,8 +367,8 @@
   "HYPE/USDT:USDT|1h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|42.238": "2026-04-16T06:01:27.103950+00:00",
   "DOGE/USDT:USDT|1h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|0.094": "2026-04-16T06:01:27.965459+00:00",
   "RIVER/USDT:USDT|4h|long|MSS + Liquidity pool (EQH/EQL)|15.2205": "2026-04-16T06:01:28.721920+00:00",
-  "BLESS/USDT:USDT|1h|long|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.0059": "2026-04-16T06:01:29.798733+00:00",
-  "BLESS/USDT:USDT|4h|long|BOS + FVG + Liquidity pool (EQH/EQL)|0.0051": "2026-04-16T06:01:30.692439+00:00",
+  "BLESS/USDT:USDT|1h|long|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.0059": "2026-04-16T12:09:35.176878+00:00",
+  "BLESS/USDT:USDT|4h|long|BOS + FVG + Liquidity pool (EQH/EQL)|0.0051": "2026-04-16T12:09:36.126163+00:00",
   "BIO/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x2.93|0.0173": "2026-04-16T06:01:31.615616+00:00",
   "TRUST/USDT:USDT|1h|short|MSS + FVG + OB + Liquidity pool (EQH/EQL)|0.0664": "2026-04-16T06:01:32.456829+00:00",
   "H/USDT:USDT|4h|long|MSS + FVG + Liquidity pool (EQH/EQL)|0.0831": "2026-04-16T06:01:33.318515+00:00",
@@ -380,5 +380,8 @@
   "TRUST/USDT:USDT|1h|short|BOS + FVG + OB + Liquidity pool (EQH/EQL)|0.0664": "2026-04-16T08:03:10.638114+00:00",
   "BIO/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x3.39|0.0177": "2026-04-16T09:49:24.095295+00:00",
   "USELESS/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.0414": "2026-04-16T09:49:27.344741+00:00",
-  "BIO/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL)|0.0176": "2026-04-16T11:02:15.697711+00:00"
+  "BIO/USDT:USDT|1h|long|MSS + FVG + Liquidity pool (EQH/EQL)|0.0176": "2026-04-16T11:02:15.697711+00:00",
+  "RIVER/USDT:USDT|1h|short|BOS + FVG + Liquidity pool (EQH/EQL)|8.919": "2026-04-16T12:09:34.227886+00:00",
+  "ORDI/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL) + Volume expansion x3.97|2.3081": "2026-04-16T12:09:37.003828+00:00",
+  "MOODENG/USDT:USDT|1h|short|MSS + FVG + Liquidity pool (EQH/EQL)|0.0486": "2026-04-16T12:09:37.887604+00:00"
 }
