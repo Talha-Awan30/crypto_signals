@@ -5,3 +5,6 @@ __pycache__/
 venv/
 .idea/
 .vscode/
+.claude/
+state/v5_state.json
+state/v5_cooldown.json

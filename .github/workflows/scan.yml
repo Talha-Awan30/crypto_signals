@@ -1,60 +1,25 @@
-name: crypto-scan
+name: v5-build-check
+
+# The v5 bot is designed to run 24/7 on Oracle Cloud (state machine needs to
+# persist across candles). GitHub Actions can no longer execute the scanner
+# meaningfully — it's left here only to verify the build on every push.
 
 on:
-  # Cron paused while v5 is under development on the `v5` branch.
-  # Manual trigger still available via "Run workflow" if needed.
-  # schedule:
-  #   - cron: "*/15 * * * *"
+  push:
+    branches: [main]
   workflow_dispatch: {}
 
-permissions:
-  contents: write  # required to commit updated state back to the repo
-
-concurrency:
-  group: crypto-scan
-  cancel-in-progress: false
-
 jobs:
-  scan:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
-
-      - name: Install deps
-        run: pip install -r requirements.txt
-
-      - name: Run one scan cycle
-        env:
-          NOTIFIER: ${{ secrets.NOTIFIER || 'email' }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          CRYPTOPANIC_TOKEN: ${{ secrets.CRYPTOPANIC_TOKEN }}
-          CORE_SYMBOLS: ${{ secrets.CORE_SYMBOLS }}
-          BROADER_TOP_N: ${{ secrets.BROADER_TOP_N || '20' }}
-          EXCHANGE_ID: ${{ secrets.EXCHANGE_ID || 'kucoinfutures' }}
-        run: python -m src.main --once
-
-      - name: Commit updated state
-        run: |
-          git config user.name "crypto-bot"
-          git config user.email "crypto-bot@users.noreply.github.com"
-          if [ -n "$(git status --porcelain state/)" ]; then
-            git add state/
-            git commit -m "chore: update signal state [skip ci]"
-            git push
-          else
-            echo "no state changes"
-          fi
+      - run: pip install -r requirements.txt
+      - name: Smoke import
+        run: python -c "from bot import main; print('v5 imports OK')"
+      - name: Docker build
+        run: docker build -t crypto-v5:ci .
