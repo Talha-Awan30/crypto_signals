@@ -1,9 +1,10 @@
 name: crypto-scan
 
 on:
-  schedule:
-    # every 15 minutes — GitHub's minimum practical cron granularity
-    - cron: "*/15 * * * *"
+  # Cron paused while v5 is under development on the `v5` branch.
+  # Manual trigger still available via "Run workflow" if needed.
+  # schedule:
+  #   - cron: "*/15 * * * *"
   workflow_dispatch: {}
 
 permissions:
