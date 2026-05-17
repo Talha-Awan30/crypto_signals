@@ -46,6 +46,9 @@ class ScoreContext:
     rr_to_tp2_2plus: bool = False
     is_london_or_ny_session: bool = True
     regime: Regime = None  # type: ignore[assignment]
+    # Relative strength vs BTC, last 20 candles on setup TF. Tier 3/4 only.
+    # +1 outperforming, -1 underperforming, 0 neutral. (0 for Tier 1/2.)
+    rs_score_delta: int = 0
 
 
 def compute_score(ctx: ScoreContext) -> int:
@@ -76,7 +79,23 @@ def compute_score(ctx: ScoreContext) -> int:
         s += 1
     if ctx.regime and ctx.regime.label == "Transitioning":
         s -= 2
+    # Relative strength vs BTC — Tier 3/4 only (caller sets 0 for Tier 1/2).
+    s += ctx.rs_score_delta
     return max(1, min(10, s))
+
+
+# RS thresholds — neutral band around zero so tiny noise doesn't sway the score.
+RS_OUTPERFORM = 0.02    # +2% over BTC in 20 bars => outperforming
+RS_UNDERPERFORM = -0.02
+
+
+def rs_score_delta(rs_value: float) -> int:
+    """Map a relative-strength figure to the v5 +1 / 0 / -1 score delta."""
+    if rs_value >= RS_OUTPERFORM:
+        return 1
+    if rs_value <= RS_UNDERPERFORM:
+        return -1
+    return 0
 
 
 def is_london_or_ny() -> bool:

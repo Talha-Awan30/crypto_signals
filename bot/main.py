@@ -30,7 +30,7 @@ import pandas as pd
 
 from . import config as cfg
 from . import cooldown
-from .btc_corr import BTCContext, classify_btc_bias, direction_allowed
+from .btc_corr import BTCContext, classify_btc_bias, direction_allowed, relative_strength
 from .conditions.a_key_level import detect_condition_a
 from .conditions.b_patterns import detect_condition_b
 from .conditions.c_mss import detect_condition_c
@@ -44,6 +44,7 @@ from .scoring import (
     ScoreContext,
     compute_score,
     is_london_or_ny,
+    rs_score_delta,
     vol_compression,
     vol_expansion,
 )
@@ -58,7 +59,8 @@ def _now_iso() -> str:
     return pd.Timestamp.utcnow().isoformat()
 
 
-def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame, store: StateStore) -> None:
+def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame,
+                btc_1d: pd.DataFrame, store: StateStore) -> None:
     symbol = normalize_symbol(ex, base)
     if not symbol:
         log.debug("no symbol for %s on %s", base, ex.id)
@@ -156,6 +158,15 @@ def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame
         if has_d:
             conds_fired.append("D")
 
+        # Relative strength vs BTC — Tier 3/4 only (v5 scoring rule).
+        # Measured over last 20 candles on the setup timeframe.
+        rs_delta = 0
+        if tier in (3, 4):
+            btc_same_tf = btc_1d if tf == "1d" else btc_4h
+            rs_val = relative_strength(df, btc_same_tf, lookback=20)
+            rs_delta = rs_score_delta(rs_val)
+            log.debug("[%s %s] RS vs BTC: %+.2f%% -> score delta %+d", base, tf, rs_val * 100, rs_delta)
+
         ctx = ScoreContext(
             direction=direction,
             htf_aligned=True,
@@ -168,6 +179,7 @@ def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame
             htf_condition_count=len(conds_fired),
             is_london_or_ny_session=is_london_or_ny(),
             regime=asset_regime,
+            rs_score_delta=rs_delta,
         )
         score = compute_score(ctx)
         if cond_b and cond_b.confidence_cap is not None:
@@ -318,7 +330,7 @@ def run_once() -> None:
         if crypto_suppressed and not cfg.is_tier4(base):
             continue
         try:
-            _scan_asset(ex, base, btc_ctx, regime, btc_4h, store)
+            _scan_asset(ex, base, btc_ctx, regime, btc_4h, btc_1d, store)
         except Exception as e:
             log.warning("asset %s failed: %s", base, e)
 
