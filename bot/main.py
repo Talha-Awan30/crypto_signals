@@ -39,7 +39,7 @@ from .email_notify import send_email
 from .exchange import build_exchange, fetch_ohlcv, normalize_symbol
 from .formatter import format_stage1, format_stage2
 from .ltf_validation import validate_ltf
-from .regime import classify_regime, volatility_suppress
+from .regime import classify_regime, classify_regime_tier4, volatility_suppress
 from .scoring import (
     ScoreContext,
     compute_score,
@@ -74,6 +74,22 @@ def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame
     if cooldown.in_cooldown(base):
         log.debug("%s in cooldown", base)
         return
+
+    # ------------ Per-asset regime override for Tier 4 ------------
+    # Tier 4 (commodities) are exempt from BTC's ADX regime — they use their
+    # own Daily structural regime, and their own volatility-suppression check.
+    asset_regime = regime
+    if cfg.is_tier4(base):
+        try:
+            asset_daily = fetch_ohlcv(ex, symbol, "1d", limit=300)
+            asset_regime = classify_regime_tier4(asset_daily)
+            if volatility_suppress(asset_regime):
+                log.warning("[%s] Tier 4 volatility suppression — own Daily ATR %.4f > %.1fx avg %.4f",
+                            base, asset_regime.atr_value, cfg.VOL_SUPPRESS_ATR_MULT, asset_regime.atr_avg)
+                return
+            log.info("[%s] Tier 4 own regime: %s", base, asset_regime.label)
+        except Exception as e:
+            log.debug("Tier 4 regime fetch failed for %s: %s", base, e)
 
     # ------------ HTF detection ------------
     for tf in cfg.HTF_TIMEFRAMES:
@@ -151,7 +167,7 @@ def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame
             zone_kind=zone.kind,
             htf_condition_count=len(conds_fired),
             is_london_or_ny_session=is_london_or_ny(),
-            regime=regime,
+            regime=asset_regime,
         )
         score = compute_score(ctx)
         if cond_b and cond_b.confidence_cap is not None:
@@ -178,7 +194,7 @@ def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame
             pattern_category=cond_b.category if cond_b and cond_b.direction == direction else None,
             liquidity_note=liq_note,
             btc_context=btc_reason,
-            market_regime=regime.label,
+            market_regime=asset_regime.label + (" (Tier 4 structural)" if cfg.is_tier4(base) else ""),
             confidence=score,
             created_at=_now_iso(),
         )
@@ -282,10 +298,15 @@ def run_once() -> None:
     regime = classify_regime(btc_1d)
     log.info("regime: %s ADX=%.1f ATR=%.4f (avg %.4f)",
              regime.label, regime.adx_value, regime.atr_value, regime.atr_avg)
-    if volatility_suppress(regime):
-        log.warning("VOLATILITY SUPPRESSION — Daily ATR %.4f > %.1fx avg %.4f. All alerts paused.",
+
+    # BTC volatility suppression applies to crypto Tiers 1-3 only. Tier 4
+    # (commodities) is independent of crypto regime and has its own per-asset
+    # volatility check inside _scan_asset.
+    crypto_suppressed = volatility_suppress(regime)
+    if crypto_suppressed:
+        log.warning("CRYPTO VOLATILITY SUPPRESSION — BTC Daily ATR %.4f > %.1fx avg %.4f. "
+                    "Tiers 1-3 paused; Tier 4 still scanned.",
                     regime.atr_value, cfg.VOL_SUPPRESS_ATR_MULT, regime.atr_avg)
-        return
 
     btc_ctx = classify_btc_bias(btc_4h, btc_1d)
     log.info("BTC context: %s", btc_ctx.summary)
@@ -293,6 +314,9 @@ def run_once() -> None:
     store = StateStore()
 
     for base in cfg.all_symbols():
+        # When BTC is too volatile, skip crypto tiers but keep scanning Tier 4.
+        if crypto_suppressed and not cfg.is_tier4(base):
+            continue
         try:
             _scan_asset(ex, base, btc_ctx, regime, btc_4h, store)
         except Exception as e:

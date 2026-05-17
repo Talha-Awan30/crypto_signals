@@ -84,4 +84,8 @@ def direction_allowed(
             return True, f"Tier 3 / strong RS +{rs:.1%} vs BTC; BTC alignment not required"
         return True, f"Tier 3 / RS {rs:+.1%} vs BTC; alignment not required"
 
+    if tier == 4:
+        # Commodity-linked — fully independent. No BTC alignment required or applied.
+        return True, "Tier 4 commodity asset — independent of crypto regime; macro/commodity drivers govern"
+
     return False, "unknown tier"

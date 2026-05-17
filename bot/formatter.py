@@ -15,7 +15,8 @@ from .state_machine import Setup
 def _tier_label(tier: int) -> str:
     return {1: "Tier 1 — BTC-Correlated Major",
             2: "Tier 2 — Semi-Correlated Mid-Cap",
-            3: "Tier 3 — Narrative / Relative-Strength"}.get(tier, "Tier ?")
+            3: "Tier 3 — Narrative / Relative-Strength",
+            4: "Tier 4 — Commodity-Linked Token"}.get(tier, "Tier ?")
 
 
 def _priority_tag(score: int) -> str:

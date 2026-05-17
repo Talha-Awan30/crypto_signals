@@ -22,6 +22,10 @@ load_dotenv()
 TIER_1: List[str] = ["BTC", "ETH", "SOL", "BNB", "XRP"]
 TIER_2: List[str] = ["ADA", "AVAX", "LINK", "DOT", "POL", "ATOM", "NEAR", "LTC"]  # MATIC -> POL
 TIER_3: List[str] = ["ONDO", "INJ", "SUI", "SEI", "TIA", "AAVE", "UNI", "ARB", "TRX", "OP"]
+# Tier 4 — Commodity-Linked Tokens (gold/silver/crude). Fully independent from
+# crypto: no BTC alignment, exempt from ADX-based regime classification.
+# XAUT (Tether Gold) is included as the gold proxy when an exchange lacks plain XAU.
+TIER_4: List[str] = ["XAU", "XAUT", "XAG", "CL"]
 
 
 def tier_of(base: str) -> int:
@@ -31,11 +35,17 @@ def tier_of(base: str) -> int:
         return 2
     if base in TIER_3:
         return 3
+    if base in TIER_4:
+        return 4
     return 0
 
 
+def is_tier4(base: str) -> bool:
+    return base in TIER_4
+
+
 def all_symbols() -> List[str]:
-    return TIER_1 + TIER_2 + TIER_3
+    return TIER_1 + TIER_2 + TIER_3 + TIER_4
 
 
 # ---------------------------------------------------------------------------
