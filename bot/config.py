@@ -20,15 +20,30 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 TIER_1: List[str] = ["BTC", "ETH", "SOL", "BNB", "XRP"]
-TIER_2: List[str] = ["ADA", "AVAX", "LINK", "DOT", "POL", "ATOM", "NEAR", "LTC"]  # MATIC -> POL
+TIER_2: List[str] = ["ADA", "AVAX", "LINK", "DOT", "POL", "ATOM", "NEAR", "LTC", "DASH"]  # MATIC -> POL; DASH added per BOT-012
 TIER_3: List[str] = ["ONDO", "INJ", "SUI", "SEI", "TIA", "AAVE", "UNI", "ARB", "TRX", "OP"]
 # Tier 4 — Commodity-Linked Tokens (gold/silver/crude). Fully independent from
 # crypto: no BTC alignment, exempt from ADX-based regime classification.
 # XAUT (Tether Gold) is included as the gold proxy when an exchange lacks plain XAU.
 TIER_4: List[str] = ["XAU", "XAUT", "XAG", "CL"]
 
+# Tier 5 — dynamic volume-filtered scanning (BOT-011)
+#   * Active-exchange USDT perps with 24h quote volume > $10M
+#   * Excludes Tiers 1-4, stablecoins, wrapped/leveraged tokens
+#   * Capped at 50 symbols per cycle to keep latency bounded on free VM
+#   * Detection: Condition B only; delivery requires A or C also present
+#   * Score capped at 7 unless A or C also fires (then standard scoring)
+TIER_5_MIN_VOLUME_USD: float = 10_000_000.0
+TIER_5_MAX_SYMBOLS: int = 50
+TIER_5_SCORE_CAP_WITHOUT_AC: int = 7
+TIER_5_EXCLUDE_PATTERNS: List[str] = [
+    "USDT", "USDC", "BUSD", "DAI", "TUSD", "FDUSD", "USDP",  # stables
+    "UP", "DOWN", "BULL", "BEAR",                              # leveraged tokens
+    "WBTC", "WETH", "STETH", "WBETH",                          # wrapped
+]
 
-def tier_of(base: str) -> int:
+
+def tier_of(base: str, tier5_set: set | None = None) -> int:
     if base in TIER_1:
         return 1
     if base in TIER_2:
@@ -37,6 +52,8 @@ def tier_of(base: str) -> int:
         return 3
     if base in TIER_4:
         return 4
+    if tier5_set and base in tier5_set:
+        return 5
     return 0
 
 
@@ -106,7 +123,7 @@ B_ROUNDING_MIN_CANDLES: int = 8
 # Scoring & delivery
 # ---------------------------------------------------------------------------
 
-MIN_SCORE_DELIVER: int = 7   # relaxed from spec's 8 to hit 0–5 alerts/day target
+MIN_SCORE_DELIVER: int = 8   # strict v5: only institutional-grade (>=8) is delivered
 PRIORITY_SCORE: int = 8      # spec's institutional threshold
 
 

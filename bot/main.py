@@ -48,7 +48,15 @@ from .scoring import (
     vol_compression,
     vol_expansion,
 )
-from .state_machine import Setup, StateStore, new_setup_id, tick_setup
+from .state_machine import (
+    Setup,
+    StateStore,
+    compute_setup_hash,
+    has_active_setup_hash,
+    has_opposing_active_in_candle,
+    new_setup_id,
+    tick_setup,
+)
 from .targets import compute_targets
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -59,14 +67,85 @@ def _now_iso() -> str:
     return pd.Timestamp.utcnow().isoformat()
 
 
+def build_tier5_universe(ex) -> List[str]:
+    """BOT-011: dynamic universe — active-exchange USDT perps with >$10M 24h vol,
+    excluding Tiers 1-4 and stablecoins/wrapped/leveraged tokens.
+
+    Capped at TIER_5_MAX_SYMBOLS (default 50) by descending volume.
+    """
+    fixed = set(cfg.TIER_1 + cfg.TIER_2 + cfg.TIER_3 + cfg.TIER_4)
+    try:
+        tickers = ex.fetch_tickers()
+    except Exception as e:
+        log.debug("Tier 5 fetch_tickers failed: %s", e)
+        return []
+    rows = []
+    for sym, t in tickers.items():
+        m = ex.markets.get(sym)
+        if not m or not m.get("swap") or m.get("quote") != "USDT":
+            continue
+        base = m.get("base") or ""
+        if base in fixed:
+            continue
+        # exclude stables, wrapped, leveraged
+        if any(p in base.upper() for p in cfg.TIER_5_EXCLUDE_PATTERNS):
+            # but only if base IS one of the patterns, not just contains random text
+            if base.upper() in cfg.TIER_5_EXCLUDE_PATTERNS:
+                continue
+        qv = t.get("quoteVolume") or 0
+        if qv < cfg.TIER_5_MIN_VOLUME_USD:
+            continue
+        rows.append((base, float(qv)))
+    rows.sort(key=lambda x: x[1], reverse=True)
+    return [b for b, _ in rows[: cfg.TIER_5_MAX_SYMBOLS]]
+
+
+def _structured_liquidity(cond_d_events, direction: str, current_price: float):
+    """BOT-003: pick 3 most relevant liquidity items.
+
+    Returns (primary_str, untapped_above, untapped_below).
+    """
+    primary = None
+    for e in cond_d_events:
+        if e.contributes_to_confluence and e.direction == direction:
+            primary = f"{e.kind} @ {e.level_price:.6f}"
+            break
+
+    untapped_above = None
+    untapped_below = None
+    for e in cond_d_events:
+        if e.kind == "untapped":
+            if e.level_price > current_price:
+                if untapped_above is None or e.level_price < untapped_above:
+                    untapped_above = e.level_price
+            elif e.level_price < current_price:
+                if untapped_below is None or e.level_price > untapped_below:
+                    untapped_below = e.level_price
+    return primary, untapped_above, untapped_below
+
+
+def _build_reasoning(setup_event_kind: str, direction: str, zone_kind: str,
+                     conditions_fired, liquidity_primary, ltf_trigger):
+    """BOT-010: 3 fixed lines."""
+    cond_summary = " + ".join(conditions_fired) if conditions_fired else "core conditions"
+    structure = (f"{setup_event_kind} confirmed in {direction} direction with "
+                 f"{cond_summary} confluence on the HTF candle.")
+    zone_descr = (f"Retracement zone defined as {zone_kind}; "
+                  f"{liquidity_primary or 'no nearby liquidity sweep recorded'}.")
+    execution = (ltf_trigger or
+                 "LTF validation pending — Stage 2 will fire on micro-MSS / displacement / rejection in zone.")
+    return structure, zone_descr, execution
+
+
 def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame,
-                btc_1d: pd.DataFrame, store: StateStore) -> None:
+                btc_1d: pd.DataFrame, store: StateStore,
+                tier5_set: Optional[set] = None) -> None:
     symbol = normalize_symbol(ex, base)
     if not symbol:
         log.debug("no symbol for %s on %s", base, ex.id)
         return
 
-    tier = cfg.tier_of(base)
+    tier = cfg.tier_of(base, tier5_set)
     if tier == 0:
         return
 
@@ -142,12 +221,7 @@ def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame
             if not zone:
                 continue
 
-        # Confidence
-        liq_note = "; ".join(e.note for e in d_directional) if d_directional else "no liquidity context"
-        for e in cond_d_events:
-            if e.kind == "untapped":
-                liq_note += f"; untapped @ {e.level_price:.4f}"
-
+        # Conditions list
         conds_fired = []
         if cond_a and cond_a.direction == direction:
             conds_fired.append("A")
@@ -157,6 +231,18 @@ def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame
             conds_fired.append("C")
         if has_d:
             conds_fired.append("D")
+
+        # BOT-003: structured 3-item liquidity context
+        current_price = float(df["close"].iloc[-1])
+        liq_primary, liq_above, liq_below = _structured_liquidity(cond_d_events, direction, current_price)
+        liq_note_parts = []
+        if liq_primary:
+            liq_note_parts.append(liq_primary)
+        if liq_above is not None:
+            liq_note_parts.append(f"Untapped Above: {liq_above:.6f}")
+        if liq_below is not None:
+            liq_note_parts.append(f"Untapped Below: {liq_below:.6f}")
+        liq_note = " | ".join(liq_note_parts) if liq_note_parts else "no liquidity context"
 
         # Relative strength vs BTC — Tier 3/4 only (v5 scoring rule).
         # Measured over last 20 candles on the setup timeframe.
@@ -185,9 +271,39 @@ def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame
         if cond_b and cond_b.confidence_cap is not None:
             score = min(score, cond_b.confidence_cap)
 
+        # BOT-011: Tier 5 score cap when A/C absent
+        has_a = bool(cond_a and cond_a.direction == direction)
+        has_c = bool(cond_c and cond_c.direction == direction)
+        if tier == 5 and not (has_a or has_c):
+            score = min(score, cfg.TIER_5_SCORE_CAP_WITHOUT_AC)
+
+        # BOT-007: strict final-score gate
         if score < cfg.MIN_SCORE_DELIVER:
-            log.info("[%s %s] score %d < %d — logged only", base, tf, score, cfg.MIN_SCORE_DELIVER)
+            log.info("[%s %s] score %d < %d — Below Threshold (internal only)",
+                     base, tf, score, cfg.MIN_SCORE_DELIVER)
             continue
+
+        # BOT-004: deterministic dedupe — block duplicate Stage 1 for same setup
+        key_level_for_hash = cond_a.level.price if has_a else invalidation
+        setup_hash = compute_setup_hash(symbol, direction, key_level_for_hash, tf)
+        if has_active_setup_hash(store, setup_hash):
+            log.info("[%s %s] Stage 1 SUPPRESSED — DUPLICATE setup_hash %s already active",
+                     base, tf, setup_hash)
+            continue
+
+        # BOT-006: block opposing-direction alerts within same HTF candle
+        candle_id = str(df.index[-1])
+        if has_opposing_active_in_candle(store, base, candle_id, direction):
+            log.warning("[%s %s] Stage 1 SUPPRESSED — CONFLICTING SIGNAL within same candle",
+                        base, tf)
+            continue
+
+        # BOT-010: structured 3-line reasoning
+        setup_event_kind = ("MSS" if has_c else
+                            "HTF Key Level Reaction" if has_a else
+                            (cond_b.name if cond_b else "Setup"))
+        r_struct, r_zone, r_exec = _build_reasoning(setup_event_kind, direction, zone.kind,
+                                                    conds_fired, liq_primary, None)
 
         setup = Setup(
             id=new_setup_id(),
@@ -201,7 +317,7 @@ def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame
             zone_high=zone.high,
             zone_kind=zone.kind,
             invalidation=invalidation,
-            key_level=cond_a.level.price if cond_a and cond_a.direction == direction else invalidation,
+            key_level=key_level_for_hash,
             pattern_name=cond_b.name if cond_b and cond_b.direction == direction else None,
             pattern_category=cond_b.category if cond_b and cond_b.direction == direction else None,
             liquidity_note=liq_note,
@@ -209,6 +325,17 @@ def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame
             market_regime=asset_regime.label + (" (Tier 4 structural)" if cfg.is_tier4(base) else ""),
             confidence=score,
             created_at=_now_iso(),
+            # BOT-001 / BOT-004 / BOT-006 / BOT-008
+            current_price=current_price,
+            exchange_id=getattr(ex, "id", "unknown"),
+            setup_hash=setup_hash,
+            candle_id=candle_id,
+            liquidity_primary=liq_primary,
+            liquidity_untapped_above=liq_above,
+            liquidity_untapped_below=liq_below,
+            reason_structure=r_struct,
+            reason_zone=r_zone,
+            reason_execution=r_exec,
         )
         store.add(setup)
         cooldown.mark_alert(base)
@@ -257,7 +384,7 @@ def _tick_existing(ex, base: str, symbol: str, store: StateStore) -> None:
                         setup.direction,
                         entry=(setup.zone_low + setup.zone_high) / 2,
                         sl=setup.invalidation,
-                        untapped_targets=[],   # could plumb through cond_d, simple for now
+                        untapped_targets=[],
                     )
                     setup.stage2_fired_at = _now_iso()
                     setup.ltf_trigger = f"{ltf}: {val.trigger_summary}"
@@ -267,8 +394,24 @@ def _tick_existing(ex, base: str, symbol: str, store: StateStore) -> None:
                         setup.tp1 = targets.tp1
                         setup.tp2 = targets.tp2
                         setup.rr_to_tp2 = targets.rr_to_tp2
+                    # LTF confluence bonus (+1) — applied BEFORE the delivery gate
                     if val.confluence_bonus:
                         setup.confidence = min(10, setup.confidence + 1)
+                    # Capture live price at firing time (BOT-001)
+                    setup.current_price = latest_close
+                    # BOT-010: refresh execution reasoning with actual LTF trigger
+                    setup.reason_execution = setup.ltf_trigger
+                    # BOT-002: pre-delivery null check on TP1/TP2/R:R
+                    if setup.tp1 is None or setup.tp2 is None or setup.rr_to_tp2 is None:
+                        store.archive(setup, "INCOMPLETE_NO_TARGETS")
+                        log.warning("[%s] Stage 2 SUPPRESSED — INCOMPLETE SETUP — TP1/TP2/R:R missing", base)
+                        return
+                    # BOT-007: hard delivery gate on FINAL score (after LTF bonus)
+                    if setup.confidence < cfg.MIN_SCORE_DELIVER:
+                        store.archive(setup, "BELOW_THRESHOLD")
+                        log.info("[%s] Stage 2 SUPPRESSED — final score %d < %d",
+                                 base, setup.confidence, cfg.MIN_SCORE_DELIVER)
+                        return
                     store.archive(setup, "EXECUTED")
                     title, body = format_stage2(setup)
                     send_email(title, body)
@@ -325,12 +468,20 @@ def run_once() -> None:
 
     store = StateStore()
 
-    for base in cfg.all_symbols():
+    # BOT-011: build Tier 5 dynamic universe each cycle
+    tier5_list = build_tier5_universe(ex)
+    tier5_set = set(tier5_list)
+    log.info("Tier 5 dynamic universe: %d symbols (cap %d, min $%.0fM vol)",
+             len(tier5_list), cfg.TIER_5_MAX_SYMBOLS, cfg.TIER_5_MIN_VOLUME_USD / 1e6)
+
+    universe = list(cfg.all_symbols()) + tier5_list
+
+    for base in universe:
         # When BTC is too volatile, skip crypto tiers but keep scanning Tier 4.
         if crypto_suppressed and not cfg.is_tier4(base):
             continue
         try:
-            _scan_asset(ex, base, btc_ctx, regime, btc_4h, btc_1d, store)
+            _scan_asset(ex, base, btc_ctx, regime, btc_4h, btc_1d, store, tier5_set)
         except Exception as e:
             log.warning("asset %s failed: %s", base, e)
 

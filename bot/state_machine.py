@@ -63,6 +63,22 @@ class Setup:
     tp1: Optional[float] = None
     tp2: Optional[float] = None
     rr_to_tp2: Optional[float] = None
+    # BOT-001: live price at moment of alert firing
+    current_price: Optional[float] = None
+    # BOT-001 / BOT-008: exchange providing the data for this setup
+    exchange_id: Optional[str] = None
+    # BOT-004: deterministic dedupe hash for Stage 1
+    setup_hash: Optional[str] = None
+    # BOT-006: HTF candle identifier (ISO timestamp of last closed setup candle)
+    candle_id: Optional[str] = None
+    # BOT-003: structured liquidity context fields
+    liquidity_primary: Optional[str] = None
+    liquidity_untapped_above: Optional[float] = None
+    liquidity_untapped_below: Optional[float] = None
+    # BOT-010: structured 3-line reasoning
+    reason_structure: Optional[str] = None
+    reason_zone: Optional[str] = None
+    reason_execution: Optional[str] = None
 
     def in_zone(self, price: float) -> bool:
         return self.zone_low <= price <= self.zone_high
@@ -123,6 +139,41 @@ class StateStore:
 
 def new_setup_id() -> str:
     return uuid.uuid4().hex[:12]
+
+
+def compute_setup_hash(symbol: str, direction: str, key_level: float, timeframe: str) -> str:
+    """BOT-004: deterministic dedupe key for Stage 1.
+
+    Hash of: symbol + direction + round(key_level, 3) + timeframe.
+    Two setups with the same hash within the cooldown window are duplicates.
+    """
+    import hashlib
+    raw = f"{symbol}|{direction}|{round(float(key_level), 3)}|{timeframe}"
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def has_active_setup_hash(store: "StateStore", setup_hash: str) -> bool:
+    for s in store.all_active():
+        if s.setup_hash == setup_hash:
+            return True
+    return False
+
+
+def has_opposing_active_in_candle(store: "StateStore", base: str, candle_id: str, direction: str) -> bool:
+    """BOT-006: True if another setup already fired in the same HTF candle
+    for the same asset in the OPPOSITE direction."""
+    for s in store.all_active():
+        if s.base == base and s.candle_id == candle_id and s.direction != direction:
+            return True
+    # Also check archived setups created in this run? Stage 1 just-archived would
+    # have been removed from active. For same-cycle protection we'll cross-check
+    # the raw _data dict including archived states from this run.
+    for sid, d in store._data.items():
+        if (d.get("base") == base
+            and d.get("candle_id") == candle_id
+            and d.get("direction") != direction):
+            return True
+    return False
 
 
 def tick_setup(setup: Setup, latest_close: float, opposing_structure: bool) -> str:
