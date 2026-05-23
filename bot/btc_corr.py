@@ -88,4 +88,10 @@ def direction_allowed(
         # Commodity-linked — fully independent. No BTC alignment required or applied.
         return True, "Tier 4 commodity asset — independent of crypto regime; macro/commodity drivers govern"
 
+    if tier == 5:
+        # Dynamic volume-filtered universe. No BTC alignment required (BOT-011).
+        # Score is capped at 7 elsewhere unless A or C also fires.
+        rs = relative_strength(asset_4h, btc_4h)
+        return True, f"Tier 5 / dynamic volume-filtered; RS {rs:+.1%} vs BTC"
+
     return False, "unknown tier"
