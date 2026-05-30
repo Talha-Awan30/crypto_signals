@@ -8,6 +8,7 @@ venv/
 .claude/
 state/v5_state.json
 state/v5_cooldown.json
+state/v7_state.json
 
 # SSH keys — NEVER commit these
 *.key
@@ -15,3 +16,6 @@ state/v5_cooldown.json
 *.pem
 ssh-key-*
 oracle_keys/
+
+# Specification documents — kept local only
+*.docx
