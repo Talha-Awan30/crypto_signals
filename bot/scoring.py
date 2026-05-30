@@ -1,108 +1,117 @@
-"""Signal quality scoring — 1..10 confidence.
+"""Signal quality scoring — v7.
 
-v5 criteria (additive scoring, capped at 10):
-  Base                          = 4
-  HTF structural alignment      +1
-  MSS displacement strength     +1 (Condition C only, body > 1.5x avg)
-  Volatility compression        +1 (ATR contraction in last 5 vs prior 5)
-  Liquidity context & class     +1 (D class 1, 2 or 5 present)
-  BTC correlation relevant      +1 (Tier 1/2 aligned, or Tier 3 strong RS)
-  Volume expansion at structure +1 (last vol > 1.5x 20-bar avg)
-  Retracement zone quality      FVG: +1, OB: +1, imbalance: 0, neckline: +1, boundary: 0
-  Three or more HTF conditions  +1 (A+B+C+D >=3)
-  LTF confluence (2+)           +1 (assigned later by state machine)
-  Distance to opposing liq.     +1 (TP2 / opposing >= 2x risk)
-  Session — London/NY           +1
-  Regime — Transitioning        -2
+Base score: 5.
+Modifiers:
+  Setup TF weight:       1D +2, 4H/2H 0, 1H -1
+  Market regime:         Trending/Ranging 0, Transitioning -1, Compression +1
+  Pattern quality:       H&S/IH&S +1, Broadening/Unclassified/Wedge -1
+  Liquidity event:       Sweep&Reclaim or External Sweep +1, Sweep&Accept 0
+  Volume confirmation:   breakout vol >= 1.2x prior-5 +1, < prior-5 -1
+  LTF confluence 2+:     +1 (added at Stage 2 only)
+  RS vs BTC (Tier 3):    +1 if >= +10%, -1 if <= -10%
+  Trap warning:          cap at 5
+  B+D confluence:        +1 (and label B+D CONFLUENCE DETECTED)
+  Tier 2 BTC opposing:   -1 (does NOT suppress)
+  Daily ATR > 2.5x avg:  suppress (handled in main, not here)
 
-Reasonable score range thus: ~3..10.
+Final score >= 8 delivers. Below = logged only.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import List
+from typing import Optional
 
 import pandas as pd
 
 from . import config as cfg
-from .conditions.zones import Zone
 from .indicators import atr
 from .regime import Regime
 
 
 @dataclass
 class ScoreContext:
-    direction: str
-    htf_aligned: bool                 # structure HH/HL agrees with direction
-    has_c_displacement: bool          # MSS body > 1.5x avg
-    vol_compression: bool             # last 5-bar ATR < prior 5-bar ATR
-    has_d_class_1_2_5: bool
-    btc_correlation_ok: bool
-    vol_expansion_at_structure: bool
-    zone_kind: str                    # "FVG" | "OB" | ...
-    htf_condition_count: int          # how many of A/B/C/D fired
-    ltf_confluence_2plus: bool = False  # set by state machine on Stage 2
-    rr_to_tp2_2plus: bool = False
-    is_london_or_ny_session: bool = True
-    regime: Regime = None  # type: ignore[assignment]
-    # Relative strength vs BTC, last 20 candles on setup TF. Tier 3/4 only.
-    # +1 outperforming, -1 underperforming, 0 neutral. (0 for Tier 1/2.)
+    timeframe: str                          # "1d" | "4h" | "2h" | "1h"
+    regime: Regime
+    pattern_name: Optional[str] = None
+    liquidity_kind: Optional[str] = None    # "sweep_reclaim" | "external_sweep" | "sweep_accept"
+    breakout_vol_ratio_prior5: float = 1.0  # 1.2+ = +1, < 1.0 = -1
+    ltf_confluence_2plus: bool = False
     rs_score_delta: int = 0
+    trap_warning: bool = False
+    bd_confluence: bool = False
+    tier2_btc_opposing: bool = False
 
 
 def compute_score(ctx: ScoreContext) -> int:
-    s = 4
-    if ctx.htf_aligned:
+    s = cfg.SCORE_BASE
+
+    # TF weight
+    s += cfg.TF_WEIGHT.get(ctx.timeframe, 0)
+
+    # Regime
+    if ctx.regime:
+        label = ctx.regime.label
+        if label == "Transitioning":
+            s -= 1
+        elif label == "Compression":
+            s += 1
+        # Trending and Ranging contribute 0
+
+    # Pattern quality
+    if ctx.pattern_name:
+        nm = ctx.pattern_name.lower()
+        if "head and shoulders" in nm:
+            s += 1
+        elif "broadening" in nm or "unclassified" in nm or "wedge" in nm:
+            s -= 1
+
+    # Liquidity quality
+    if ctx.liquidity_kind in ("sweep_reclaim", "external_sweep"):
         s += 1
-    if ctx.has_c_displacement:
+
+    # Volume confirmation at breakout
+    if ctx.breakout_vol_ratio_prior5 >= 1.2:
         s += 1
-    if ctx.vol_compression:
-        s += 1
-    if ctx.has_d_class_1_2_5:
-        s += 1
-    if ctx.btc_correlation_ok:
-        s += 1
-    if ctx.vol_expansion_at_structure:
-        s += 1
-    if ctx.zone_kind in ("FVG", "neckline"):
-        s += 1
-    elif ctx.zone_kind == "OB":
-        s += 1
-    if ctx.htf_condition_count >= 3:
-        s += 1
+    elif ctx.breakout_vol_ratio_prior5 < 1.0:
+        s -= 1
+
+    # LTF confluence (set at Stage 2)
     if ctx.ltf_confluence_2plus:
         s += 1
-    if ctx.rr_to_tp2_2plus:
-        s += 1
-    if ctx.is_london_or_ny_session:
-        s += 1
-    if ctx.regime and ctx.regime.label == "Transitioning":
-        s -= 2
-    # Relative strength vs BTC — Tier 3/4 only (caller sets 0 for Tier 1/2).
+
+    # RS (Tier 3 only — caller passes 0 otherwise)
     s += ctx.rs_score_delta
+
+    # B+D confluence
+    if ctx.bd_confluence:
+        s += 1
+
+    # Tier 2 BTC opposing
+    if ctx.tier2_btc_opposing:
+        s -= 1
+
+    # Trap warning cap
+    if ctx.trap_warning:
+        s = min(s, cfg.B_TRAP_SCORE_CAP)
+
     return max(1, min(10, s))
 
 
-# RS thresholds — neutral band around zero so tiny noise doesn't sway the score.
-RS_OUTPERFORM = 0.02    # +2% over BTC in 20 bars => outperforming
-RS_UNDERPERFORM = -0.02
+# Tier 3 / Tier 4 RS score helper (v7 only Tier 3 per spec)
+RS_OUTPERFORM_PCT = 0.10
+RS_UNDERPERFORM_PCT = -0.10
 
 
 def rs_score_delta(rs_value: float) -> int:
-    """Map a relative-strength figure to the v5 +1 / 0 / -1 score delta."""
-    if rs_value >= RS_OUTPERFORM:
+    if rs_value >= RS_OUTPERFORM_PCT:
         return 1
-    if rs_value <= RS_UNDERPERFORM:
+    if rs_value <= RS_UNDERPERFORM_PCT:
         return -1
     return 0
 
 
-def is_london_or_ny() -> bool:
-    """Crude session check — London 07-16 UTC, NY 12-21 UTC."""
-    hour = datetime.now(timezone.utc).hour
-    return 7 <= hour <= 21
-
+# Regime helpers reused from earlier code
 
 def vol_compression(df: pd.DataFrame) -> bool:
     if len(df) < 15:
@@ -119,3 +128,13 @@ def vol_expansion(df: pd.DataFrame, mult: float = 1.5) -> bool:
     avg = float(df["volume"].iloc[-21:-1].mean())
     last = float(df["volume"].iloc[-1])
     return avg > 0 and last > mult * avg
+
+
+def vol_ratio_prior5(df: pd.DataFrame) -> float:
+    if len(df) < 6:
+        return 1.0
+    avg = float(df["volume"].iloc[-6:-1].mean())
+    last = float(df["volume"].iloc[-1])
+    if avg <= 0:
+        return 1.0
+    return last / avg

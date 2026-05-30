@@ -1,14 +1,13 @@
-"""Central configuration — universe, tiers, thresholds, scoring weights.
+"""Central configuration — v7 spec (B and D independent triggers).
 
-All thresholds come straight from Trading_Bot_Final_Prompt_v5.docx. Anything
-labelled "TUNE" is a value we may adjust during the tuning phase; everything
-else is locked to the spec.
+All thresholds are extracted directly from Trading_Bot_Prompt_v7.docx.
+Anything noted as TUNE may be adjusted during the tuning phase.
 """
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from dotenv import load_dotenv
 
@@ -16,31 +15,13 @@ load_dotenv()
 
 
 # ---------------------------------------------------------------------------
-# Coin universe — tiered per v5 spec
+# Coin universe — tiered per v7 spec
 # ---------------------------------------------------------------------------
 
 TIER_1: List[str] = ["BTC", "ETH", "SOL", "BNB", "XRP"]
-TIER_2: List[str] = ["ADA", "AVAX", "LINK", "DOT", "POL", "ATOM", "NEAR", "LTC", "DASH"]  # MATIC -> POL; DASH added per BOT-012
+TIER_2: List[str] = ["ADA", "AVAX", "LINK", "DOT", "POL", "ATOM", "NEAR", "LTC", "DASH"]  # MATIC -> POL
 TIER_3: List[str] = ["ONDO", "INJ", "SUI", "SEI", "TIA", "AAVE", "UNI", "ARB", "TRX", "OP"]
-# Tier 4 — Commodity-Linked Tokens (gold/silver/crude). Fully independent from
-# crypto: no BTC alignment, exempt from ADX-based regime classification.
-# XAUT (Tether Gold) is included as the gold proxy when an exchange lacks plain XAU.
 TIER_4: List[str] = ["XAU", "XAUT", "XAG", "CL"]
-
-# Tier 5 — dynamic volume-filtered scanning (BOT-011)
-#   * Active-exchange USDT perps with 24h quote volume > $10M
-#   * Excludes Tiers 1-4, stablecoins, wrapped/leveraged tokens
-#   * Capped at 50 symbols per cycle to keep latency bounded on free VM
-#   * Detection: Condition B only; delivery requires A or C also present
-#   * Score capped at 7 unless A or C also fires (then standard scoring)
-TIER_5_MIN_VOLUME_USD: float = 10_000_000.0
-TIER_5_MAX_SYMBOLS: int = 50
-TIER_5_SCORE_CAP_WITHOUT_AC: int = 7
-TIER_5_EXCLUDE_PATTERNS: List[str] = [
-    "USDT", "USDC", "BUSD", "DAI", "TUSD", "FDUSD", "USDP",  # stables
-    "UP", "DOWN", "BULL", "BEAR",                              # leveraged tokens
-    "WBTC", "WETH", "STETH", "WBETH",                          # wrapped
-]
 
 
 def tier_of(base: str, tier5_set: set | None = None) -> int:
@@ -66,11 +47,17 @@ def all_symbols() -> List[str]:
 
 
 # ---------------------------------------------------------------------------
-# Timeframes
+# Timeframes — v7
 # ---------------------------------------------------------------------------
 
-HTF_TIMEFRAMES: List[str] = ["1d", "4h"]   # setup detection
-LTF_TIMEFRAMES: List[str] = ["1h", "15m"]  # retracement validation only
+# Setup detection / Stage 1 triggers fire on these (1H weight -1, 2H/4H standard, 1D +2)
+HTF_TIMEFRAMES: List[str] = ["1d", "4h", "2h", "1h"]
+# Stage 2 LTF validation only
+LTF_TIMEFRAMES: List[str] = ["30m", "15m"]
+
+
+# Timeframe weight in scoring (v7 SIGNAL QUALITY SCORING)
+TF_WEIGHT: Dict[str, int] = {"1d": 2, "4h": 0, "2h": 0, "1h": -1}
 
 
 # ---------------------------------------------------------------------------
@@ -80,65 +67,142 @@ LTF_TIMEFRAMES: List[str] = ["1h", "15m"]  # retracement validation only
 ADX_PERIOD: int = 14
 ADX_TRENDING: float = 25.0
 ADX_RANGING: float = 20.0
+ADX_COMPRESSION: float = 15.0          # v7 Compression / Pre-Expansion regime
 ATR_PERIOD: int = 14
 ATR_LOOKBACK_DAYS: int = 20
 
-# Volatility regime filter — suppress all alerts if Daily ATR > 2.5x 20-day avg
 VOL_SUPPRESS_ATR_MULT: float = 2.5
+NEWS_CANDLE_ATR_MULT: float = 3.0      # v7: single candle exceeding 3x ATR = news candle
 
 
 # ---------------------------------------------------------------------------
-# Condition thresholds (v5 spec verbatim)
+# Condition B (v7) — pattern thresholds
 # ---------------------------------------------------------------------------
 
-# Condition A — HTF Key Level Reaction
-A_LEVEL_TOLERANCE_PCT: float = 0.005          # 0.5%
-A_LEVEL_MIN_REACTIONS: int = 2                # 2 prior reactions
-
-# Condition C — HTF Market Structure Shift
-C_DISPLACEMENT_LOOKBACK: int = 5              # body > prior 5-candle average
-C_ATR_DISPLACEMENT_MULT: float = 1.0          # min 1 ATR expansion through level
-
-# Condition D — Liquidity tolerance for EQH/EQL clustering
-D_EQ_TOLERANCE_PCT: float = 0.0015            # 0.15% — tight cluster
-D_SWEEP_ACCEPT_CANDLES: int = 2               # min 2 candles to hold beyond level
-
-# Condition B — Pattern detection (see bot/conditions/b_patterns/*.py)
 B_FLAG_IMPULSE_ATR_MULT: float = 3.0
 B_FLAG_MIN_CANDLES: int = 3
-B_FLAG_MAX_CANDLES: int = 10
+B_FLAG_MAX_CANDLES: int = 12          # v7: 3-12 (was 10 in v5)
+B_FLAG_CHANNEL_MAX_ANGLE_DEG: float = 45.0
+
 B_PENNANT_MIN_CANDLES: int = 4
-B_RECTANGLE_HORIZ_TOL: float = 0.01           # 1% slope tolerance
-B_RECTANGLE_MIN_TOUCHES: int = 4              # 2 highs + 2 lows
+B_PENNANT_CONTRACTION_PCT: float = 0.20  # 20% contraction from start to breakout
+
+B_RECTANGLE_BOUNDARY_DEV_ATR: float = 0.25  # within 0.25x ATR
+B_RECTANGLE_MIN_TOUCHES: int = 4
+
 B_TRIANGLE_FLAT_TOUCHES: int = 3
 B_TRIANGLE_CONV_TOUCHES: int = 2
-B_BROADENING_MIN_CANDLES: int = 4
-B_DOUBLE_TOL_PCT: float = 0.005               # 0.5% between peaks/troughs
+B_TRIANGLE_MIN_STEP_ATR: float = 0.15   # each new HL/LH must exceed prior by 0.15x ATR
+
+B_CHANNEL_MIN_TOUCHES: int = 4
+B_CHANNEL_WIDTH_DEV_ATR: float = 0.5    # channel width must remain within 0.5x ATR
+
+B_BROADENING_MIN_CANDLES: int = 5
+B_BROADENING_EXPANSION_STEP_ATR: float = 0.25
+
+B_WEDGE_MIN_CANDLES: int = 5
+B_WEDGE_EXPANSION_STEP_ATR: float = 0.25
+
+B_DOUBLE_TOL_PCT: float = 0.005
 B_DOUBLE_MIN_SEPARATION: int = 5
-B_HS_SHOULDER_TOL_PCT: float = 0.01           # 1% between shoulders
+B_HS_SHOULDER_TOL_PCT: float = 0.01
 B_ROUNDING_MIN_CANDLES: int = 8
+B_ROUNDING_MAX_COUNTERSWING_PCT: float = 0.50  # no counter-swing > 50% of arc depth
+
+
+# Trap detection (v7)
+B_TRAP_BODY_MIN_RATIO: float = 0.50            # body < 50% of total range = wick-heavy
+B_TRAP_REENTRY_CANDLES: int = 2                # reclose inside boundary within 2 candles
+B_TRAP_LATE_UTC_HOURS: range = range(23, 24)   # 23:00-23:30 UTC checked specially
+B_TRAP_SCORE_CAP: int = 5                      # cap at 5/10 if 2+ trap signals
+
+
+# Premium/Discount equilibrium
+PREMIUM_DISCOUNT_NEUTRAL_BAND_PCT: float = 0.0  # treat >0% above EQ as premium, <0% as discount
 
 
 # ---------------------------------------------------------------------------
-# Scoring & delivery
+# Condition D (v7) — liquidity thresholds
 # ---------------------------------------------------------------------------
 
-MIN_SCORE_DELIVER: int = 8   # strict v5: only institutional-grade (>=8) is delivered
-PRIORITY_SCORE: int = 8      # spec's institutional threshold
-
-
-# ---------------------------------------------------------------------------
-# Cooldown / timeout
-# ---------------------------------------------------------------------------
-
-COOLDOWN_HOURS: int = 48
-TIMEOUT_CANDLES: int = 5            # cancel if no zone entry within 5 candles
-TIMEOUT_EXTEND: int = 2             # +2 if compressing near zone
-TIMEOUT_HARD_MAX: int = 7           # absolute kill
+D_EQ_TOLERANCE_PCT: float = 0.003          # v7: EQH/EQL within 0.3%
+D_SWEEP_ACCEPT_CANDLES: int = 2            # 2 closed candles beyond level for acceptance
+D_EXT_SWEEP_VOL_MULT: float = 1.2          # volume expansion threshold
+D_MIN_SWING_SEPARATION: int = 5            # HTF swing high/low needs 5-candle separation
+D_PENDING_ZONE_APPROACH_PCT: float = 0.01  # 1% — Liquidity Approach alert range
+D_FVG_EXCESSIVE_ATR_MULT: float = 1.5      # retracement zone > 1.5x ATR = excessive imbalance
 
 
 # ---------------------------------------------------------------------------
-# BTC correlation — required for Tier 1/2
+# SL geometry — v7
+# ---------------------------------------------------------------------------
+
+SL_ATR_PADDING: float = 0.5   # SL = zone boundary ± 0.5 ATR on setup TF
+
+
+# ---------------------------------------------------------------------------
+# LTF validation thresholds — v7 Step 4 strict math
+# ---------------------------------------------------------------------------
+
+LTF_MSS_BREAK_ATR_MULT: float = 0.15        # close beyond pivot by >= 0.15x LTF ATR
+LTF_DISP_BODY_MULT: float = 1.5             # body > 1.5x prior-5 avg
+LTF_DISP_VOL_MULT: float = 1.2              # volume > 20-period MA by 20%+
+LTF_REJECTION_WICK_BODY_RATIO: float = 1.5
+LTF_REJECTION_CLOSE_PCTILE: float = 0.25    # top/bottom 25% of range
+LTF_REJECTION_MIN_RANGE_ATR: float = 0.75
+
+
+# ---------------------------------------------------------------------------
+# Scoring & delivery — v7
+# ---------------------------------------------------------------------------
+
+MIN_SCORE_DELIVER: int = 8
+PRIORITY_SCORE: int = 8
+SCORE_BASE: int = 5  # neutral starting score before modifiers
+
+
+# ---------------------------------------------------------------------------
+# Cooldown / timeout — v7
+# ---------------------------------------------------------------------------
+
+COOLDOWN_HOURS_SAME_DIR: int = 4   # v7: 4h between same-direction alerts on same asset
+TIMEOUT_CANDLES: int = 5
+TIMEOUT_EXTEND: int = 2
+TIMEOUT_HARD_MAX: int = 7
+
+
+# ---------------------------------------------------------------------------
+# Universe filters — Tier 5 dynamic (v7)
+# ---------------------------------------------------------------------------
+
+UNIVERSE_MIN_VOLUME_USD: float = 5_000_000.0     # v7: $5M min 24h volume
+TIER_5_MIN_VOLUME_USD: float = 5_000_000.0
+TIER_5_MAX_SYMBOLS: int = 50
+TIER_5_MIN_HISTORY_DAYS: int = 90                # v7: min 90 days listing history
+TIER_5_MAX_4H_ATR_PCT: float = 0.15              # v7: 4H ATR not > 15% of price
+TIER_5_MAX_CANDLE_MOVE_PCT: float = 0.25         # v7: no single candle > 25% in last 10
+TIER_5_LOOKBACK_CANDLES: int = 10
+
+TIER_5_EXCLUDE_PATTERNS: List[str] = [
+    "USDT", "USDC", "BUSD", "DAI", "TUSD", "FDUSD", "USDP",
+    "UP", "DOWN", "BULL", "BEAR",
+    "WBTC", "WETH", "STETH", "WBETH",
+]
+
+
+# ---------------------------------------------------------------------------
+# Consolidation Watch (v7) — 4 criteria all must be met
+# ---------------------------------------------------------------------------
+
+CONS_BASE_PROXIMITY_PCT: float = 0.03            # within 3% of HTF base
+CONS_VOL_THRESHOLD_PCT: float = 0.50             # volume < 50% of 20-period avg
+CONS_ATR_THRESHOLD_PCT: float = 0.50             # ATR < 50% of 20-period avg
+CONS_LOOKBACK_CANDLES: int = 10                  # last 10 candles for compression check
+CONS_ADX_MAX: float = 20.0                       # ADX below 20 = no clear trend
+
+
+# ---------------------------------------------------------------------------
+# BTC reference symbol
 # ---------------------------------------------------------------------------
 
 BTC_SYMBOL: str = "BTC/USDT:USDT"
@@ -148,9 +212,16 @@ BTC_SYMBOL: str = "BTC/USDT:USDT"
 # Runtime / IO
 # ---------------------------------------------------------------------------
 
+def _csv(value: str) -> List[str]:
+    return [s.strip() for s in value.split(",") if s.strip()]
+
+
+def _bool(value: str, default: bool = True) -> bool:
+    return value.lower() in ("1", "true", "yes", "on") if value else default
+
+
 @dataclass
 class Runtime:
-    # Exchange preference (auto-fallback at startup)
     exchange_preference: List[str] = field(
         default_factory=lambda: _csv(os.getenv(
             "EXCHANGE_PREFERENCE",
@@ -158,7 +229,6 @@ class Runtime:
         ))
     )
 
-    # Email
     smtp_host: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
     smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
     smtp_user: str = os.getenv("SMTP_USER", "")
@@ -166,16 +236,14 @@ class Runtime:
     email_from: str = os.getenv("EMAIL_FROM", "")
     email_to: str = os.getenv("EMAIL_TO", "")
 
-    # Run mode
-    run_mode: str = os.getenv("RUN_MODE", "loop").lower()   # loop | once
-    loop_interval_sec: int = int(os.getenv("LOOP_INTERVAL_SEC", "60"))  # 1-min poll on Oracle
+    run_mode: str = os.getenv("RUN_MODE", "loop").lower()
+    loop_interval_sec: int = int(os.getenv("LOOP_INTERVAL_SEC", "60"))
 
-    # State file
-    state_path: str = os.getenv("STATE_PATH", "state/v5_state.json")
+    state_path: str = os.getenv("STATE_PATH", "state/v7_state.json")
 
-
-def _csv(value: str) -> List[str]:
-    return [s.strip() for s in value.split(",") if s.strip()]
+    # v7 standalone watch alerts — flippable via env
+    enable_consolidation_watch: bool = _bool(os.getenv("ENABLE_CONSOLIDATION_WATCH", "true"))
+    enable_liquidity_approach: bool = _bool(os.getenv("ENABLE_LIQUIDITY_APPROACH", "true"))
 
 
 RUNTIME = Runtime()
