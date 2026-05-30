@@ -9,6 +9,7 @@ venv/
 state/v5_state.json
 state/v5_cooldown.json
 state/v7_state.json
+state/v7_watch_dedupe.json
 
 # SSH keys — NEVER commit these
 *.key

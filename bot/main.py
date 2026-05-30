@@ -64,6 +64,7 @@ from .watches import (
     consolidation_watch,
     liquidity_approach_watch,
 )
+from . import watch_dedupe
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("bot")
@@ -501,26 +502,32 @@ def _scan_asset(ex, base: str, btc_ctx: BTCContext, regime, btc_4h: pd.DataFrame
                 condition_label="D",
             )
 
-    # ----- Consolidation Watch (Daily TF) -----
+    # ----- Consolidation Watch (Daily TF) — deduped per asset / 24h -----
     if cfg.RUNTIME.enable_consolidation_watch:
         try:
             df_d = fetch_ohlcv(ex, symbol, "1d", limit=120)
             cw = consolidation_watch(df_d, base)
-            if cw:
+            if cw and watch_dedupe.consolidation_should_fire(base):
                 title, body = format_consolidation_watch(cw, tier)
-                send_email(title, body)
-                log.info("[%s] Consolidation Watch alert", base)
+                if send_email(title, body):
+                    watch_dedupe.consolidation_mark(base)
+                    log.info("[%s] Consolidation Watch alert", base)
         except Exception as e:
             log.debug("[%s] consolidation_watch failed: %s", base, e)
 
-    # ----- Liquidity Approach Watch -----
+    # ----- Liquidity Approach Watch — deduped per (asset, side, level) / 4h -----
     if cfg.RUNTIME.enable_liquidity_approach:
         try:
             df_4h_w = fetch_ohlcv(ex, symbol, "4h", limit=100)
             for ap in liquidity_approach_watch(df_4h_w, base):
+                if not watch_dedupe.liquidity_approach_should_fire(
+                        ap.base, ap.side, ap.approaching_level):
+                    continue
                 title, body = format_liquidity_approach_watch(ap, tier)
-                send_email(title, body)
-                log.info("[%s] Liquidity Approach Watch alert", base)
+                if send_email(title, body):
+                    watch_dedupe.liquidity_approach_mark(
+                        ap.base, ap.side, ap.approaching_level)
+                    log.info("[%s] Liquidity Approach Watch alert", base)
         except Exception as e:
             log.debug("[%s] liquidity_approach failed: %s", base, e)
 
