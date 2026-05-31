@@ -208,6 +208,10 @@ CONS_ADX_MAX: float = 20.0                       # ADX below 20 = no clear trend
 BTC_SYMBOL: str = "BTC/USDT:USDT"
 
 
+# V7-009 — version label included in every alert email
+PROMPT_VERSION: str = "V7"
+
+
 # ---------------------------------------------------------------------------
 # Runtime / IO
 # ---------------------------------------------------------------------------

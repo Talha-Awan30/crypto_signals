@@ -643,6 +643,17 @@ def _unclassified(df: pd.DataFrame) -> Optional[PatternResult]:
 # ---------------------------------------------------------------------------
 
 def detect_condition_b(df: pd.DataFrame) -> Optional[PatternResult]:
+    """V7-007 + V7-003 sequence:
+      1. Trap Detection runs FIRST on the latest candle.
+         If 2+ trap signals: cap confidence at 5/10 and label POTENTIAL TRAP.
+         Pattern classification still runs (so we can still emit a label),
+         but the cap and label propagate to the alert.
+      2. Sequential waterfall classification — first match wins:
+            a. Reversal patterns (H&S, IH&S, Double T/B, Rounding)
+            b. Continuation patterns (Flag, Pennant, Triangle, Rectangle, Channel)
+            c. Broadening / Wedge
+            d. Unclassified
+    """
     if df is None or len(df) < 20:
         return None
     atr_series = atr(df, cfg.ATR_PERIOD)
@@ -652,31 +663,41 @@ def detect_condition_b(df: pd.DataFrame) -> Optional[PatternResult]:
     if atr_now <= 0:
         return None
 
+    # V7-007: trap detection BEFORE classification. Boundary args unused so we
+    # pass placeholders; the function only inspects the breakout candle itself.
+    trap = detect_trap(df, 0.0, 0.0)
+
+    # V7-003: sequential waterfall — reversal -> continuation -> broadening -> unclassified
     detectors = [
+        # Reversal first
+        lambda: _head_shoulders(df),
+        lambda: _double_top_bottom(df),
+        lambda: _rounding(df),
+        # Continuation second
         lambda: _bull_bear_flag(df, atr_now),
         lambda: _pennant(df, atr_now),
-        lambda: _rectangle(df, atr_now),
         lambda: _triangle(df, atr_now),
+        lambda: _rectangle(df, atr_now),
         lambda: _channel(df, atr_now),
+        # Broadening / Wedge third
         lambda: _broadening(df, atr_now),
         lambda: _broadening_wedge(df, atr_now),
-        lambda: _double_top_bottom(df),
-        lambda: _head_shoulders(df),
-        lambda: _rounding(df),
+        # Unclassified last
         lambda: _unclassified(df),
     ]
+
     for fn in detectors:
         try:
             res = fn()
-            if res:
-                # attach trap analysis
-                trap = detect_trap(df, res.zone.low, res.zone.high)
-                res.trap = trap
-                if trap.is_trap:
-                    cap = cfg.B_TRAP_SCORE_CAP
-                    res.confidence_cap = cap if res.confidence_cap is None else min(res.confidence_cap, cap)
-                    res.note += f" | TRAP WARNING ({', '.join(trap.flags)})"
-                return res
         except Exception:
             continue
+        if not res:
+            continue
+        # Attach trap analysis (already computed before classification)
+        res.trap = trap
+        if trap.is_trap:
+            cap = cfg.B_TRAP_SCORE_CAP
+            res.confidence_cap = cap if res.confidence_cap is None else min(res.confidence_cap, cap)
+            res.note += f" | TRAP WARNING ({', '.join(trap.flags)})"
+        return res
     return None

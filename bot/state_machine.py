@@ -167,7 +167,23 @@ def new_setup_id() -> str:
 
 
 def compute_setup_hash(symbol: str, direction: str, key_level: float, timeframe: str) -> str:
-    raw = f"{symbol}|{direction}|{round(float(key_level), 3)}|{timeframe}"
+    """Setup ID = sha1(symbol | direction | normalized_level | timeframe).
+
+    Level normalization uses 4 significant figures so low-priced assets
+    (e.g. SHIB at ~$0.000017) don't all collapse to 0.000 when rounded to
+    3 decimals. This keeps the dedupe sensitive to actual level differences
+    across all price magnitudes.
+    """
+    level = float(key_level)
+    if level == 0:
+        norm = "0"
+    else:
+        # 4 significant figures
+        import math
+        magnitude = math.floor(math.log10(abs(level)))
+        precision = max(0, 3 - magnitude)
+        norm = f"{round(level, precision):.{precision}f}"
+    raw = f"{symbol}|{direction}|{norm}|{timeframe}"
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
 
 
@@ -191,16 +207,28 @@ def has_opposing_active_in_candle(store: StateStore, base: str, candle_id: str, 
 
 
 def has_recent_same_direction_alert(store: StateStore, base: str, direction: str) -> bool:
-    """v7: 4-hour cooldown between same-direction alerts on same asset.
-    Opposite direction can fire immediately if independently triggered.
+    """v7 + V7-001 reinforcement: 4-hour cooldown PER (asset, direction)
+    regardless of timeframe. Once an alert has fired for BTC long on ANY TF,
+    no other BTC long alert may fire for 4 hours — across ALL of 1d/4h/2h/1h.
+
+    Opposite direction (e.g. BTC short) can fire immediately if independently
+    triggered.
+
+    Only "real" prior alerts gate the cooldown — failed/suppressed states
+    (BELOW_THRESHOLD, DUPLICATE, etc.) do NOT count. Setups that fired and
+    later EXPIRED/INVALIDATED still count, because the user already received
+    that email.
     """
     cutoff = datetime.now(timezone.utc) - pd.Timedelta(hours=cfg.COOLDOWN_HOURS_SAME_DIR)
+    # States that mean "alert was NEVER delivered" → don't gate cooldown
+    failed_states = {
+        "INVALID_SL_GEOM", "INCOMPLETE_NO_TARGETS",
+        "BELOW_THRESHOLD", "CONFLICTING_SIGNAL", "DUPLICATE",
+    }
     for sid, d in store._data.items():
         if d.get("base") != base or d.get("direction") != direction:
             continue
-        # Only count actually delivered Stage 1 alerts (not below-threshold etc.)
-        if d.get("state") in ("INVALID_SL_GEOM", "INCOMPLETE_NO_TARGETS",
-                              "BELOW_THRESHOLD", "CONFLICTING_SIGNAL", "DUPLICATE"):
+        if d.get("state") in failed_states:
             continue
         ts_raw = d.get("created_at")
         if not ts_raw:
